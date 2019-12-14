@@ -3,7 +3,8 @@ from scapy.layers.inet import *
 import requests as req
 import json;
 from requests import get, post
-
+import subprocess
+import re
 
 def main():
 
@@ -19,29 +20,49 @@ def main():
 
     ip = get('https://api.ipify.org').text
     print(ip)
+    startPattern = '^traceroute to (.+) packets$'
+    foundPattern = "^\s?([0-9]+)? (.+) \((.+)\) ((.+) ms)*"
+    notFoundPattern = "^ ?[0-9]+  [*] [*] [*] *$"
     for address in li:
-        chemin= []
-        print("dst: " + address)
-        for i in range(1, 20):
-                pkt = IP(dst=address, ttl=i) / UDP(dport=33434)
-                # Send the packet and get a reply
-                reply = sr1(pkt, verbose=0, timeout=10)
-                if reply is None:
-                    # No reply =(
-                    print("no reply")
-                    # break
-                elif reply.type == 3:
-                    # We've reached our destination
-                    print("Done!", reply.src)
-                    break
-                else:
-                    # We're in the middle somewhere
-                    print("%d hops away: " % i, reply.src)
-                    chemin.append(reply.src)
-        print(chemin)
 
-        traceroutes.append({'src': ip, "dst": address, "route": chemin})
-    post(url="https://aqueous-dusk-24314.herokuapp.com/traceroute/", data={"traceroutes": traceroutes})
+        chemin = []
+        popen = subprocess.Popen(['traceroute', address], stdout=subprocess.PIPE, universal_newlines=True)
+        notFoundCount = 0
+        # for stdout_line in iter(popen.stdout.readline, ""):
+        it = iter(popen.stdout.readline, "")
+        for stdout_line in iter(popen.stdout.readline, ""):
+            start = re.search(startPattern, stdout_line)
+            found = re.search(foundPattern, stdout_line)
+            notFound = re.search(notFoundPattern, stdout_line)
+
+            if start:
+                # print(start.group(0))
+                print("START")
+            elif found:
+                # print(found.group(0))
+                print("FOUND")
+                print(found.groups())
+                print(found.group(3))
+                chemin.append(found.groups(3))
+            elif notFound:
+                # print(notFound.group(0))
+                print("NOT FOUND")
+                notFoundCount += 1
+            else:
+                print("no match" + stdout_line)
+
+            if notFoundCount == 3:
+                # popen.stdout.close()
+                # popen.terminate()
+                break
+
+        popen.stdout.close()
+        popen.terminate()
+        traceroutes.append({"dst": address, "route": chemin})
+
+
+    resp = post(url="https://aqueous-dusk-24314.herokuapp.com/traceroute/", json={"traceroutes": traceroutes, "src": ip})
+    print(resp)
 
 
 
