@@ -43,7 +43,7 @@ def main():
                 print("FOUND")
                 print(found.groups())
                 print(found.group(3))
-                chemin.append(found.groups(3))
+                chemin.append(found.group(3))
             elif notFound:
                 # print(notFound.group(0))
                 print("NOT FOUND")
@@ -61,6 +61,7 @@ def main():
         traceroutes.append({"dst": address, "route": chemin})
 
 
+    print({"traceroutes": traceroutes, "src": ip})
     resp = post(url="https://aqueous-dusk-24314.herokuapp.com/traceroute/", json={"traceroutes": traceroutes, "src": ip})
     print(resp)
 
