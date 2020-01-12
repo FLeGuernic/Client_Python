@@ -60,8 +60,12 @@ class Client(object):
             traceroutes.append({"dst": address, "route": chemin})
 
         print({"traceroutes": traceroutes, "src": ip})
+        headers = {'Content-type': 'application/json'}
+        body = {"traceroutes": traceroutes, "src": ip}
+
         resp = post(url="https://aqueous-dusk-24314.herokuapp.com/traceroute/",
-                    json={"traceroutes": traceroutes, "src": ip})
+                    headers=headers,
+                    data=json.dumps(body))
         print(resp)
 
 if __name__ == '__main__':
